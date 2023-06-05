@@ -108,6 +108,7 @@ class RequestsPostToolWithParsing(BaseRequestsTool, BaseTool):
         try:
             data = json.loads(text)
         except json.JSONDecodeError as e:
+            print("Error decoding JSON",text)
             raise e
         response = self.requests_wrapper.post(data["url"], data["data"])
         response = response[: self.response_length]
@@ -171,13 +172,13 @@ class RequestsDeleteToolWithParsing(BaseRequestsTool, BaseTool):
 # Orchestrator, planner, controller.
 #
 def _create_api_planner_tool(
-    api_spec: ReducedOpenAPISpec, llm: BaseLanguageModel, memory = None
+    api_spec: ReducedOpenAPISpec, llm: BaseLanguageModel, memory = None,instructions = ""
 ) -> Tool:
     endpoint_descriptions = [
         f"{name} {description}" for name, description, _ in api_spec.endpoints
     ]
     prompt = PromptTemplate(
-        template=API_PLANNER_PROMPT,
+        template=instructions + API_PLANNER_PROMPT,
         input_variables=["query"],
         partial_variables={"endpoints": "- " + "- ".join(endpoint_descriptions)},
     )
@@ -195,20 +196,21 @@ def _create_api_controller_agent(
     api_docs: str,
     requests_wrapper: RequestsWrapper,
     llm: BaseLanguageModel,
-    memory = None
+    memory = None,
+    instructions = "",
 ) -> AgentExecutor:
     get_llm_chain = LLMChain(llm=llm, prompt=PARSING_GET_PROMPT)
     post_llm_chain = LLMChain(llm=llm, prompt=PARSING_POST_PROMPT)
     tools: List[BaseTool] = [
-        RequestsGetToolWithParsing(
-            requests_wrapper=requests_wrapper, llm_chain=get_llm_chain
-        ),
+        # RequestsGetToolWithParsing(
+        #     requests_wrapper=requests_wrapper, llm_chain=get_llm_chain
+        # ),
         RequestsPostToolWithParsing(
             requests_wrapper=requests_wrapper, llm_chain=post_llm_chain
         ),
     ]
     prompt = PromptTemplate(
-        template=API_CONTROLLER_PROMPT,
+        template=instructions+API_CONTROLLER_PROMPT,
         input_variables=[],
         partial_variables={
             "api_url": api_url,
@@ -240,6 +242,7 @@ def _create_api_controller_tool(
     requests_wrapper: RequestsWrapper,
     llm: BaseLanguageModel,
     memory = None,
+    instructions = ""
 ) -> Tool:
     """Expose controller as a tool.
 
@@ -265,7 +268,7 @@ def _create_api_controller_tool(
                 raise ValueError(f"{endpoint_name} endpoint does not exist.")
             docs_str += f"== Docs for {endpoint_name} == \n{yaml.dump(docs)}\n"
 
-        agent = _create_api_controller_agent(base_url, docs_str, requests_wrapper, llm,memory)
+        agent = _create_api_controller_agent(base_url, docs_str, requests_wrapper, llm,memory,instructions)
         return agent.run(plan_str)
 
     return Tool(
@@ -287,6 +290,9 @@ def create_openapi_agent(
     callback_manager: Optional[BaseCallbackManager] = None,
     verbose: bool = True,
     agent_executor_kwargs: Optional[Dict[str, Any]] = None,
+    instructions: str = "",
+    instructions_planner: str = "",
+    instructions_controller: str = "",
     **kwargs: Dict[str, Any],
 ) -> AgentExecutor:
     """Instantiate API planner and controller for a given spec.
@@ -300,8 +306,9 @@ def create_openapi_agent(
     memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 
     tools = [
-        _create_api_planner_tool(api_spec, OpenAI(model_name="gpt-3.5-turbo", temperature=0.9),memory),
-        _create_api_controller_tool(api_spec, requests_wrapper, OpenAI(model_name="gpt-3.5-turbo", temperature=0.0),memory),
+
+        _create_api_planner_tool(api_spec, OpenAI(model_name="gpt-4", temperature=0.0),memory,instructions_planner),
+        _create_api_controller_tool(api_spec, requests_wrapper, OpenAI(model_name="gpt-4", temperature=0.9),memory,instructions_controller),
     ]
     # prompt = PromptTemplate(
     #     template=API_ORCHESTRATOR_PROMPT,
@@ -319,7 +326,7 @@ def create_openapi_agent(
     agent = ConversationalChatAgent.from_llm_and_tools(
         llm,
         tools,
-        system_message=API_ORCHESTRATOR_PROMPT+PREFIX,
+        system_message=API_ORCHESTRATOR_PROMPT +instructions +"\n"+ PREFIX,
         human_message=SUFFIX,
         **kwargs,
     )
