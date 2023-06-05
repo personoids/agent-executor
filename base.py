@@ -7,11 +7,13 @@ from prompt import (
     OPENAPI_SUFFIX,
 )
 from toolkit import OpenAPIToolkit
-from langchain.agents.mrkl.base import ZeroShotAgent
+from langchain.agents.conversational_chat.base import ConversationalChatAgent
 from langchain.agents.mrkl.prompt import FORMAT_INSTRUCTIONS
 from langchain.base_language import BaseLanguageModel
 from langchain.callbacks.base import BaseCallbackManager
 from langchain.chains.llm import LLMChain
+from langchain.agents import AgentType
+from langchain.agents import initialize_agent, Tool
 
 
 def create_openapi_agent(
@@ -32,7 +34,7 @@ def create_openapi_agent(
 ) -> AgentExecutor:
     """Construct a json agent from an LLM and tools."""
     tools = toolkit.get_tools()
-    prompt = ZeroShotAgent.create_prompt(
+    prompt = ConversationalChatAgent.create_prompt(
         tools,
         prefix=prefix,
         suffix=suffix,
@@ -44,8 +46,8 @@ def create_openapi_agent(
         prompt=prompt,
         callback_manager=callback_manager,
     )
-    tool_names = [tool.name for tool in tools]
-    agent = ZeroShotAgent(llm_chain=llm_chain, allowed_tools=tool_names, **kwargs)
+    tool_names = [tool.name for tool in tools]    
+    agent = ConversationalChatAgent(llm_chain=llm_chain, allowed_tools=tool_names, **kwargs)
     return AgentExecutor.from_agent_and_tools(
         agent=agent,
         tools=tools,

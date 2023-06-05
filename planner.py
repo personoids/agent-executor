@@ -3,9 +3,17 @@ import json
 import re
 from functools import partial
 from typing import Any, Callable, Dict, List, Optional
+from langchain.agents import Tool
+from langchain.memory import ConversationBufferMemory
+from langchain.chat_models import ChatOpenAI
+from langchain.utilities import SerpAPIWrapper
+from langchain.agents import initialize_agent
+from langchain.agents import AgentType
+from getpass import getpass
 
 import yaml
 from pydantic import Field
+
 
 from langchain.agents.agent import AgentExecutor
 from planner_prompt import (
@@ -26,7 +34,8 @@ from planner_prompt import (
     REQUESTS_POST_TOOL_DESCRIPTION,
 )
 from spec import ReducedOpenAPISpec
-from langchain.agents.mrkl.base import ZeroShotAgent
+# from langchain.agents.mrkl.base import ZeroShotAgent
+from langchain.agents.conversational_chat.base import ConversationalChatAgent
 from langchain.agents.tools import Tool
 from langchain.base_language import BaseLanguageModel
 from langchain.callbacks.base import BaseCallbackManager
@@ -162,7 +171,7 @@ class RequestsDeleteToolWithParsing(BaseRequestsTool, BaseTool):
 # Orchestrator, planner, controller.
 #
 def _create_api_planner_tool(
-    api_spec: ReducedOpenAPISpec, llm: BaseLanguageModel
+    api_spec: ReducedOpenAPISpec, llm: BaseLanguageModel, memory = None
 ) -> Tool:
     endpoint_descriptions = [
         f"{name} {description}" for name, description, _ in api_spec.endpoints
@@ -186,6 +195,7 @@ def _create_api_controller_agent(
     api_docs: str,
     requests_wrapper: RequestsWrapper,
     llm: BaseLanguageModel,
+    memory = None
 ) -> AgentExecutor:
     get_llm_chain = LLMChain(llm=llm, prompt=PARSING_GET_PROMPT)
     post_llm_chain = LLMChain(llm=llm, prompt=PARSING_POST_PROMPT)
@@ -199,27 +209,37 @@ def _create_api_controller_agent(
     ]
     prompt = PromptTemplate(
         template=API_CONTROLLER_PROMPT,
-        input_variables=["input", "agent_scratchpad"],
+        input_variables=[],
         partial_variables={
             "api_url": api_url,
             "api_docs": api_docs,
-            "tool_names": ", ".join([tool.name for tool in tools]),
-            "tool_descriptions": "\n".join(
-                [f"{tool.name}: {tool.description}" for tool in tools]
-            ),
+            # "tool_names": ", ".join([tool.name for tool in tools]),
+            # "tool_descriptions": "\n".join(
+            #     [f"{tool.name}: {tool.description}" for tool in tools]
+            # ),
         },
     )
-    agent = ZeroShotAgent(
-        llm_chain=LLMChain(llm=llm, prompt=prompt),
-        allowed_tools=[tool.name for tool in tools],
+    agent = ConversationalChatAgent.from_llm_and_tools(
+        llm,
+        tools=tools,
+        system_message=prompt.format()+PREFIX,
+        human_message=SUFFIX,
     )
-    return AgentExecutor.from_agent_and_tools(agent=agent, tools=tools, verbose=True)
+    # agent = initialize_agent(tools, llm, agent=AgentType.CHAT_CONVERSATIONAL_REACT_DESCRIPTION, verbose=verbose, memory=memory)
+    return AgentExecutor.from_agent_and_tools(
+        agent=agent,
+        tools=tools,
+        memory=memory,
+        # callback_manager=callback_manager,
+        verbose=True,
+    )
 
 
 def _create_api_controller_tool(
     api_spec: ReducedOpenAPISpec,
     requests_wrapper: RequestsWrapper,
     llm: BaseLanguageModel,
+    memory = None,
 ) -> Tool:
     """Expose controller as a tool.
 
@@ -230,7 +250,7 @@ def _create_api_controller_tool(
 
     base_url = api_spec.servers[0]["url"]  # TODO: do better.
 
-    def _create_and_run_api_controller_agent(plan_str: str) -> str:
+    def _create_and_run_api_controller_agent(plan_str: str) -> str:        
         pattern = r"\b(GET|POST|PATCH|DELETE)\s+(/\S+)*"
         matches = re.findall(pattern, plan_str)
         endpoint_names = [
@@ -245,7 +265,7 @@ def _create_api_controller_tool(
                 raise ValueError(f"{endpoint_name} endpoint does not exist.")
             docs_str += f"== Docs for {endpoint_name} == \n{yaml.dump(docs)}\n"
 
-        agent = _create_api_controller_agent(base_url, docs_str, requests_wrapper, llm)
+        agent = _create_api_controller_agent(base_url, docs_str, requests_wrapper, llm,memory)
         return agent.run(plan_str)
 
     return Tool(
@@ -254,12 +274,16 @@ def _create_api_controller_tool(
         description=API_CONTROLLER_TOOL_DESCRIPTION,
     )
 
+from langchain.agents.conversational_chat.prompt import (
+    PREFIX,
+    SUFFIX,
+    TEMPLATE_TOOL_RESPONSE,
+)
 
 def create_openapi_agent(
     api_spec: ReducedOpenAPISpec,
     requests_wrapper: RequestsWrapper,
     llm: BaseLanguageModel,
-    shared_memory: Optional[ReadOnlySharedMemory] = None,
     callback_manager: Optional[BaseCallbackManager] = None,
     verbose: bool = True,
     agent_executor_kwargs: Optional[Dict[str, Any]] = None,
@@ -273,28 +297,37 @@ def create_openapi_agent(
     rather than a top-level planner
     that invokes a controller with its plan. This is to keep the planner simple.
     """
+    memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+
     tools = [
-        _create_api_planner_tool(api_spec, llm),
-        _create_api_controller_tool(api_spec, requests_wrapper, llm),
+        _create_api_planner_tool(api_spec, llm,memory),
+        _create_api_controller_tool(api_spec, requests_wrapper, llm,memory),
     ]
-    prompt = PromptTemplate(
-        template=API_ORCHESTRATOR_PROMPT,
-        input_variables=["input", "agent_scratchpad"],
-        partial_variables={
-            "tool_names": ", ".join([tool.name for tool in tools]),
-            "tool_descriptions": "\n".join(
-                [f"{tool.name}: {tool.description}" for tool in tools]
-            ),
-        },
-    )
-    agent = ZeroShotAgent(
-        llm_chain=LLMChain(llm=llm, prompt=prompt, memory=shared_memory),
-        allowed_tools=[tool.name for tool in tools],
+    # prompt = PromptTemplate(
+    #     template=API_ORCHESTRATOR_PROMPT,
+    #     input_variables=[],
+    #     partial_variables={
+    #         # "tool_names": ", ".join([tool.name for tool in tools]),
+    #         "tool_descriptions": "\n".join(
+    #             [f"{tool.name}: {tool.description}" for tool in tools]
+    #         ),
+    #     },
+    # )
+    # print("prompt", )
+    
+    # agent = initialize_agent(tools, llm, agent=AgentType.CHAT_CONVERSATIONAL_REACT_DESCRIPTION, verbose=verbose, memory=memory)
+    agent = ConversationalChatAgent.from_llm_and_tools(
+        llm,
+        tools,
+        system_message=API_ORCHESTRATOR_PROMPT+PREFIX,
+        human_message=SUFFIX,
         **kwargs,
     )
+    # return agent
     return AgentExecutor.from_agent_and_tools(
         agent=agent,
         tools=tools,
+        memory=memory,
         callback_manager=callback_manager,
         verbose=verbose,
         **(agent_executor_kwargs or {}),

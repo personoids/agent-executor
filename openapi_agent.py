@@ -9,7 +9,24 @@ import requests
 personoids_agent = planner.create_openapi_agent(
     reduce_openapi_spec(json.loads(requests.get('http://localhost:5004/openapi.json').content)), 
     requests_wrapper=RequestsWrapper(), 
-    llm=OpenAI(model_name="gpt-4", temperature=0.0)
+    llm=OpenAI(model_name="gpt-4", temperature=0.9)
     )
-user_query = "boostrap and learn gcp"
-personoids_agent.run(user_query)
+personoids_agent.run("boostrapPlugin")
+personoids_agent.run("clone the most popular gitlab repository")
+personoids_agent.run("auto-proceed")
+personoids_agent.run("auto-proceed")
+personoids_agent.run("auto-proceed")
+# personoids_agent.run("auto-proceed")
+# personoids_agent.run("auto-proceed")
+# personoids_agent.run("auto-proceed")
+# personoids_agent.run("auto-proceed")
+# personoids_agent.run("auto-proceed")
+# personoids_agent.run("auto-proceed")
+# personoids_agent.run("auto-proceed")
+# personoids_agent.run("auto-proceed")
+
+
+
+# sub_agent = Tool(func=personoids_agent, description="can do anything")
+# agent 
+
