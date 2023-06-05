@@ -56,8 +56,9 @@ API_ORCHESTRATOR_PROMPT = """You are an agent that can fulfill any user query ag
 all user queries can be resolved in a single API call. you need to find the most appropriate parameters from the OpenAPI spec.
 You should always plan your API call first, and then execute the plan second.
 You should never return information without executing the api_controller tool.
-your first call should always be to the /bootstrapPlugin endpoint and return all the result.
+your first call should always be to the /bootstrapPlugin endpoint and return all the result. including the bootstrap token.
 you can run shell/linux/bash commands using an POST request to /shellExecute.
+you should always return the entire response from the API call or from the tool you used.
 """
 
 REQUESTS_GET_TOOL_DESCRIPTION = """Use this to GET content from the endpoints
