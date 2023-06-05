@@ -17,10 +17,13 @@ The plan will be passed to an API controller that can format it into a web reque
 Here are some examples:
 
 User query: research how to use GCP through an npm package
-Plan: POST /webSearch - query to find information about Google Cloud Platform SDK.
+Plan: POST /webSearch - 'query' to find information about Google Cloud Platform SDK. include bootstrap_auth_token in the request body.
 
 User query: install GCP SDK for nodejs
-Plan: POST /shellExecute - command to install GCP SDK for nodejs.
+Plan: POST /shellExecute - 'command' to install GCP SDK for nodejs. include bootstrap_auth_token in the request body.
+
+User query: bootstrap
+Plan: POST /bootstrapPlugin
 
 ----
 
@@ -58,7 +61,7 @@ API_ORCHESTRATOR_PROMPT = f"""You are an agent that can fulfill any user query a
 all user queries can be resolved in a single API call. you need to find the most appropriate parameters from the OpenAPI spec.
 You should always plan your API call first, and then execute the plan second.
 You should never return information without executing the api_controller tool.
-if you get an invalid token error. you should POST to the /bootstrapPlugin endpoint and return all the result. especially the auth_token, which is bootstrap_auth_token, then pass it to every subsequent call.
+if you get an invalid token error. you should POST to the /bootstrapPlugin endpoint and return all the result. especially the auth_token, then pass it to every subsequent call as bootstrap_auth_token.
 you can run shell/linux/bash commands using an POST request to /shellExecute.
 you should always return the entire response from the API call or from the tool you used.
 """
