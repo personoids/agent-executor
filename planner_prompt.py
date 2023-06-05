@@ -28,6 +28,8 @@ Here are endpoints you can use:
 
 {endpoints}
 
+
+notice that almost all of them are POST requests!
 ----
 
 User query: {query}
@@ -61,7 +63,7 @@ you can run shell/linux/bash commands using an POST request to /shellExecute.
 you should always return the entire response from the API call or from the tool you used.
 """
 
-REQUESTS_GET_TOOL_DESCRIPTION = """Use this to GET content from the endpoints
+REQUESTS_GET_TOOL_DESCRIPTION = """Use this when you want to perform a GET request
 Input to the tool should be a json string with 3 keys: "url", "params" and "output_instructions".
 The value of "url" should be a string. 
 The value of "params" should be a dict of the needed and available parameters from the OpenAPI spec related to the endpoint. 
@@ -80,7 +82,7 @@ Output:""",
     input_variables=["response", "instructions"],
 )
 
-REQUESTS_POST_TOOL_DESCRIPTION = """Use this when you want to POST from the endpoints
+REQUESTS_POST_TOOL_DESCRIPTION = """Use this when you want to perform a POST request
 Input to the tool should be a json string with 3 keys: "url", "data", and "output_instructions".
 The value of "url" should be a string.
 The value of "data" should be a dictionary of key-value pairs you want to POST to the url.
