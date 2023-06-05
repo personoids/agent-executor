@@ -8,7 +8,7 @@ import yaml
 from pydantic import Field
 
 from langchain.agents.agent import AgentExecutor
-from langchain.agents.agent_toolkits.openapi.planner_prompt import (
+from planner_prompt import (
     API_CONTROLLER_PROMPT,
     API_CONTROLLER_TOOL_DESCRIPTION,
     API_CONTROLLER_TOOL_NAME,
@@ -25,7 +25,7 @@ from langchain.agents.agent_toolkits.openapi.planner_prompt import (
     REQUESTS_PATCH_TOOL_DESCRIPTION,
     REQUESTS_POST_TOOL_DESCRIPTION,
 )
-from langchain.agents.agent_toolkits.openapi.spec import ReducedOpenAPISpec
+from spec import ReducedOpenAPISpec
 from langchain.agents.mrkl.base import ZeroShotAgent
 from langchain.agents.tools import Tool
 from langchain.base_language import BaseLanguageModel

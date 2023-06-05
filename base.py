@@ -2,11 +2,11 @@
 from typing import Any, Dict, List, Optional
 
 from langchain.agents.agent import AgentExecutor
-from langchain.agents.agent_toolkits.openapi.prompt import (
+from prompt import (
     OPENAPI_PREFIX,
     OPENAPI_SUFFIX,
 )
-from langchain.agents.agent_toolkits.openapi.toolkit import OpenAPIToolkit
+from toolkit import OpenAPIToolkit
 from langchain.agents.mrkl.base import ZeroShotAgent
 from langchain.agents.mrkl.prompt import FORMAT_INSTRUCTIONS
 from langchain.base_language import BaseLanguageModel

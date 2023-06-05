@@ -7,7 +7,7 @@ from langchain.agents.agent import AgentExecutor
 from langchain.agents.agent_toolkits.base import BaseToolkit
 from langchain.agents.agent_toolkits.json.base import create_json_agent
 from langchain.agents.agent_toolkits.json.toolkit import JsonToolkit
-from langchain.agents.agent_toolkits.openapi.prompt import DESCRIPTION
+from prompt import DESCRIPTION
 from langchain.agents.tools import Tool
 from langchain.base_language import BaseLanguageModel
 from langchain.requests import TextRequestsWrapper
