@@ -300,8 +300,8 @@ def create_openapi_agent(
     memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 
     tools = [
-        _create_api_planner_tool(api_spec, llm,memory),
-        _create_api_controller_tool(api_spec, requests_wrapper, llm,memory),
+        _create_api_planner_tool(api_spec, OpenAI(model_name="gpt-3.5-turbo", temperature=0.0),memory),
+        _create_api_controller_tool(api_spec, requests_wrapper, OpenAI(model_name="gpt-3.5-turbo", temperature=0.0),memory),
     ]
     # prompt = PromptTemplate(
     #     template=API_ORCHESTRATOR_PROMPT,

@@ -7,24 +7,24 @@ API_PLANNER_PROMPT = """You are a planner that plans the next API call to assist
 
 You should:
 1) evaluate which is the best method from the API documentated below to solve the user query. use only methods from the api endpoints documented below. fallback to /shellExecute if you can't find a better endpoint to use.
-2) generate the API call description including the context.
+2) generate a single API call to one of the endpoints description including the context.
 
 You should only use API endpoints documented below ("Here are endpoints you can use...").
-The plan will be passed to an API controller that can format it into web requests and return the responses.
+The plan will be passed to an API controller that can format it into a web request and return the response.
 
 ----
 
 Here are some examples:
 
 User query: research how to use GCP through an npm package
-Plan: POST /webSearch with query to find information about Google Cloud Platform SDK.
+Plan: POST /webSearch - query to find information about Google Cloud Platform SDK.
 
 User query: install GCP SDK for nodejs
-Plan: POST /shellExecute with command to install GCP SDK for nodejs.
+Plan: POST /shellExecute - command to install GCP SDK for nodejs.
 
 ----
 
-Here are endpoints you can use. Do not reference any of the endpoints above.
+Here are endpoints you can use:
 
 {endpoints}
 
@@ -52,11 +52,11 @@ API_CONTROLLER_TOOL_DESCRIPTION = f"Can be used to execute an API call, like {AP
 # Orchestrate planning + execution.
 # The goal is to have an agent at the top-level (e.g. so it can recover from errors and re-plan) while
 # keeping planning (and specifically the planning prompt) simple.
-API_ORCHESTRATOR_PROMPT = """You are an agent that can fulfill any user query against the plugin using API calls, things like querying information, creating resources, coding, running shell commands, etc.
+API_ORCHESTRATOR_PROMPT = f"""You are an agent that can fulfill any user query against the plugin using API calls, things like querying information, creating resources, coding, running shell commands, etc.
 all user queries can be resolved in a single API call. you need to find the most appropriate parameters from the OpenAPI spec.
 You should always plan your API call first, and then execute the plan second.
 You should never return information without executing the api_controller tool.
-your first call should always be to the /bootstrapPlugin endpoint and return all the result. including the bootstrap token.
+when calling bootstrap, you should always POST to the /bootstrapPlugin endpoint and return all the result. especially the bootstrap auth token.
 you can run shell/linux/bash commands using an POST request to /shellExecute.
 you should always return the entire response from the API call or from the tool you used.
 """
