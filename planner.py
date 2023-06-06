@@ -48,6 +48,11 @@ from langchain.requests import RequestsWrapper
 from langchain.tools.base import BaseTool
 from langchain.tools.requests.tool import BaseRequestsTool
 
+from langchain.agents.conversational_chat.prompt import (
+    PREFIX,
+    SUFFIX,
+    TEMPLATE_TOOL_RESPONSE,
+)
 #
 # Requests tools with LLM-instructed extraction of truncated responses.
 #
@@ -175,7 +180,7 @@ def _create_api_planner_tool(
     api_spec: ReducedOpenAPISpec, llm: BaseLanguageModel, memory = None,instructions = ""
 ) -> Tool:
     endpoint_descriptions = [
-        f"{name} {description}" for name, description, _ in api_spec.endpoints
+        f"{name}" for name, description, _ in api_spec.endpoints
     ]
     prompt = PromptTemplate(
         template=instructions + API_PLANNER_PROMPT,
@@ -210,7 +215,7 @@ def _create_api_controller_agent(
         ),
     ]
     prompt = PromptTemplate(
-        template=instructions+API_CONTROLLER_PROMPT,
+        template=instructions + API_CONTROLLER_PROMPT,
         input_variables=[],
         partial_variables={
             "api_url": api_url,
@@ -224,8 +229,9 @@ def _create_api_controller_agent(
     agent = ConversationalChatAgent.from_llm_and_tools(
         llm,
         tools=tools,
-        system_message=prompt.format()+PREFIX,
+        system_message=prompt.format(),
         human_message=SUFFIX,
+        verbose=True
     )
     # agent = initialize_agent(tools, llm, agent=AgentType.CHAT_CONVERSATIONAL_REACT_DESCRIPTION, verbose=verbose, memory=memory)
     return AgentExecutor.from_agent_and_tools(
@@ -277,11 +283,6 @@ def _create_api_controller_tool(
         description=API_CONTROLLER_TOOL_DESCRIPTION,
     )
 
-from langchain.agents.conversational_chat.prompt import (
-    PREFIX,
-    SUFFIX,
-    TEMPLATE_TOOL_RESPONSE,
-)
 
 def create_openapi_agent(
     api_spec: ReducedOpenAPISpec,
@@ -308,7 +309,7 @@ def create_openapi_agent(
     tools = [
 
         _create_api_planner_tool(api_spec, OpenAI(model_name="gpt-4", temperature=0.0),memory,instructions_planner),
-        _create_api_controller_tool(api_spec, requests_wrapper, OpenAI(model_name="gpt-4", temperature=0.9),memory,instructions_controller),
+        _create_api_controller_tool(api_spec, requests_wrapper, OpenAI(model_name="gpt-4", temperature=0.0),memory,instructions_controller),
     ]
     # prompt = PromptTemplate(
     #     template=API_ORCHESTRATOR_PROMPT,
@@ -326,8 +327,9 @@ def create_openapi_agent(
     agent = ConversationalChatAgent.from_llm_and_tools(
         llm,
         tools,
-        system_message=API_ORCHESTRATOR_PROMPT +instructions +"\n"+ PREFIX,
+        system_message= API_ORCHESTRATOR_PROMPT + "---\n" + instructions + "---\n",
         human_message=SUFFIX,
+        verbose=verbose,
         **kwargs,
     )
     # return agent

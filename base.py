@@ -14,6 +14,7 @@ from langchain.callbacks.base import BaseCallbackManager
 from langchain.chains.llm import LLMChain
 from langchain.agents import AgentType
 from langchain.agents import initialize_agent, Tool
+from planner_prompt import FORMAT_EXAMPLES
 
 
 def create_openapi_agent(
@@ -22,7 +23,7 @@ def create_openapi_agent(
     callback_manager: Optional[BaseCallbackManager] = None,
     prefix: str = OPENAPI_PREFIX,
     suffix: str = OPENAPI_SUFFIX,
-    format_instructions: str = FORMAT_INSTRUCTIONS,
+    format_instructions: str = FORMAT_INSTRUCTIONS + FORMAT_EXAMPLES,
     input_variables: Optional[List[str]] = None,
     max_iterations: Optional[int] = 15,
     max_execution_time: Optional[float] = None,

@@ -16,7 +16,7 @@ The plan will be passed to an API controller that can format it into a web reque
 
 Here are some examples:
 
-User query: research how to use GCP through an npm package
+User query: research how to use GCP SDKthrough an npm package
 Plan: POST /webSearch - 'query' to find information about Google Cloud Platform SDK. include bootstrap_auth_token in the request body.
 
 User query: install GCP SDK for nodejs
@@ -43,7 +43,7 @@ API_PLANNER_TOOL_DESCRIPTION = f"Can be used to generate the next API call to as
 # Execution.
 API_CONTROLLER_PROMPT = """You are an agent that gets an API call and given its documentation, execute it and return the final response.
 
-you can run shell/linux/bash commands using an POST request to /shellExecute
+you can run shell/linux/bash commands using an POST request to /shellExecute. Use only shell commands you that you learned in the past
 
 
 Here is documentation on the API:
@@ -64,6 +64,9 @@ You should never return information without executing the api_controller tool.
 if you get an invalid token error. you should POST to the /bootstrapPlugin endpoint and return all the result. especially the auth_token, then pass it to every subsequent call as bootstrap_auth_token.
 you can run shell/linux/bash commands using an POST request to /shellExecute.
 you should always return the entire response from the API call or from the tool you used.
+When you get a '"action": "Final Answer"', you should use the "action_input" and plan what the next step should be when auto-proceed
+
+
 """
 
 REQUESTS_GET_TOOL_DESCRIPTION = """Use this when you want to perform a GET request
@@ -135,3 +138,19 @@ If the response indicates an error, you should instead output a summary of the e
 Output:""",
     input_variables=["response", "instructions"],
 )
+
+
+FORMAT_EXAMPLES = """
+---
+Here are some examples of calls to the tools:
+```json 
+    "action": "api_planner"
+    "action_input": "find most popular GitLab repository"
+```
+
+\`\`\`json
+    "action": "api_controller":
+    "action_input: "POST /webSearch - 'query' to find the most popular GitLab repository. include bootstrap_auth_token in the request body."
+\`\`\`
+
+"""
